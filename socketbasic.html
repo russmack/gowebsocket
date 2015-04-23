@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<title></title>
+		<script type="text/javascript">
+
+			var wsuri = "ws://127.0.0.1:8080/testsock";
+			var mainCanvas;
+			var drawIncoming = true;
+			var dataFifo = new Array();
+            var ws = createSocket(wsuri);
+
+			function init() {
+				mainCanvas = document.getElementById('main-log');
+			}
+            function createSocket(resource) {
+                ws = new WebSocket(resource);
+                attachEventHandlers(ws);
+                return ws;
+            }
+            function attachEventHandlers(ws) {
+                ws.onopen = onopenHandler;
+                ws.onclose = oncloseHandler;
+                ws.onmessage = onmessageHandler;
+            }
+            // For this demo, this really just ignores incoming messages.
+			function stop() {
+				drawIncoming = !drawIncoming;
+			}
+            function onmessageHandler(e) {
+	            console.log("Received message from server: " + e.data);
+
+			    if (!drawIncoming) return;
+				var maxRows = 12;
+                // -1 'cos we're about to unshift 1.
+				if (dataFifo.length > maxRows -1) dataFifo.pop();
+				dataFifo.unshift(e.data);
+				var buffer = '';
+				for (var i=0; i<dataFifo.length; i++) {
+					if (i > 0) buffer += '\n';
+					buffer += dataFifo[i];
+				}
+				mainCanvas.value = buffer;
+            }
+            function onopenHandler() {
+	            console.log("Connected to " + wsuri);
+            }
+            function oncloseHandler(e) {
+	            console.log("Connection closed (" + e.code + ")");
+            }
+	        function sendMsg() {
+                // Ensure socket is open - 
+                // may have been closed by server after last response.
+                console.log('ReadyState: ' + ws.readyState);
+                if (ws === 'undefined' || ws.readyState !== 1) {
+                    console.log("Recreating socket.");
+                    ws = createSocket(wsuri);
+                    waitForSocketConnection(ws, sendMsg);
+                } else {
+                    console.log("Sending message.");
+		            var data = "This is a request from the client.";
+		            ws.send(data);
+		            console.log("Sent: " + data);
+                }
+		    }
+
+            // Wait until the connection is made.
+            function waitForSocketConnection(socket, callback){
+                setTimeout(
+                    function () {
+                        if (socket.readyState === 1) {
+                            console.log("Connected.")
+                            if(callback !== null){
+                                callback();
+                            }
+                            return;
+                        } else {
+                            console.log("Waiting for connection...")
+                            waitForSocketConnection(socket, callback);
+                        }
+                    }, 5);  // Wait 5 milliseconds for the connection.
+            }
+
+            window.addEventListener("load", init, false);
+		</script>
+	</head>
+
+	<body>
+		<textarea id="main-log" cols="80" rows="20" style="border:1px solid #000000"></textarea>
+		<br />
+		<input type="button" onclick="sendMsg()" value="Send">
+		<input type="button" onclick="stop()" value="Stop">
+	</body>
+</html>
