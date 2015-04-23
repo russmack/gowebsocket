@@ -12,8 +12,11 @@ import (
 	"time"
 )
 
-// WebscketServer is the main struct representing the server.
+// WebsocketServer is the main struct representing the websocket server.
 type WebsocketServer struct{}
+
+// WebServer is a simple html server, useful for serving a websocket client.
+type WebServer struct{}
 
 // SocketHandler is an alias.
 type SocketHandler func(*websocket.Conn)
@@ -21,9 +24,14 @@ type SocketHandler func(*websocket.Conn)
 // CustomHandler is an alias.
 type CustomHandler func([]byte, func(string))
 
-// NewWensocketServer returns a new WebsocketServer.
+// NewWebsocketServer returns a new WebsocketServer.
 func NewWebsocketServer() *WebsocketServer {
 	return &WebsocketServer{}
+}
+
+// NewWebServer returns a new WebServer.
+func NewWebServer() *WebServer {
+	return &WebServer{}
 }
 
 // Add adds a route and an associated handler function.
@@ -34,8 +42,9 @@ func (s *WebsocketServer) Add(route string, handlerFn CustomHandler) {
 // Start starts the server listening for the specified routes.
 func (s *WebsocketServer) Start() {
 	fmt.Println("Starting websocket server...")
-	// Server an example client html page.
-	s.serveExampleClientPage()
+	// Serve an example client html page.
+	w := NewWebServer()
+	w.serveExampleClientPage()
 	// Add builtin fixed routes - will probably remove.
 	s.addBuiltinRoutes()
 	err := http.ListenAndServe(":8080", nil)
@@ -66,11 +75,17 @@ func getSocketHandler(myCustHandler CustomHandler) SocketHandler {
  */
 
 // serveExampleClientPage serves a html page which will communicate with the websocket server.
-func (s *WebsocketServer) serveExampleClientPage() {
+func (s *WebServer) serveExampleClientPage() {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "socketbasic.html")
 	}
 	http.HandleFunc("/", handler)
+	// Putting this here for possible later use.
+	//err := http.ListenAndServe(":8081", nil)
+	//if err != nil {
+	//	panic("ListenAndServe: " + err.Error())
+	//}
+
 }
 
 // addBuiltinRoutes adds some routes that might be useful, eg for debugging.
